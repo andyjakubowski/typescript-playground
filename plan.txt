@@ -1,23 +1,26 @@
 PEDAC
 ========================
 
-
-Problem
+PROBLEM
+Scope, format
 ========================
 
 
-Examples
+EXAMPLES
+Test cases, edge cases, boundaries, exceptions, errors
 ========================
 
 
-Data structures
+DATA STRUCTURES
+Modeling data, state
 ========================
 
 
-Algorithms
+ALGORITHMS
+State transitions, logic
 ========================
 
 
-Code with intent
+CODE WITH INTENT
 ========================
 
