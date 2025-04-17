@@ -1,0 +1,53 @@
+You're building a headless tab manager. Each tab has a title and a unique ID. Users can switch between tabs using keyboard navigation (e.g. arrow keys), and reorder them via drag-and-drop. You need to model the state and logic.
+
+Okay, so I’m thinking we will have some hardcoded initial state like:
+
+Tabs = [{ id: 'tab-1', title: 'index.ts' }, { id: 'tab-2', title: 'biome.json' }]
+
+Speaking of state, we’ll need to model a list of Tabs, and a Tab object:
+
+interface Tab {
+  id: string
+  title: string
+}
+
+type Tabs = Array<Tab>
+
+We will also need to represent an active tab, let’s say using an integer index, where 0 represents Tabs[0] and N represents Tabs[N]
+
+type tabIndex = number
+
+Then for logic, state transitions will be triggered by LeftArrow and RightArrow events. For the purposes of our testing here, we might want to represent sequences of these events as state, like:
+
+type EventSequence = Array<EventLeftArrow | EventRightArrow | EventTabAdd | EventTabRemove>
+
+For drag-and-drop, this is typically done by dragging a mouse cursor. The question here is whether drag-and-drop should trigger a temporary state that can be canceled or committed, or if drag-and-drop should live update state as you drag the tab.
+
+Actually, regardless of the device used to trigger drag-and-drop (keyboard, mouse, finger touch, whatever), we’d probably want to represent the following events:
+type EventDragAndDrop = EventDragAndDropStart | EventDragAndDropCancel | EventDragAndDropEnd
+
+For each device type, we might need dedicated events. But let’s say this is keyboard only. So you would emit EventDragAndDropStart, and then you would emit EventDragAndDropMoveLeft or EventDragAndDropMoveRight, which would reorder tabs in Tabs.
+
+Updated EventSequence:
+type EventDragAndDrop = EventDragAndDropStart | EventDragAndDropCancel | EventDragAndDropEnd | EventDragAndDropMoveLeft | EventDragAndDropMoveRight
+type Event = EventKeyboardLeftArrow | EventKeyboardRightArrow | EventTabAdd | EventTabRemove | EventDragAndDrop
+type EventSequence = Array<Event>
+
+interface Event {
+  type: string
+}
+
+I guess we should represent the mode our system is in, like:
+type ActiveMode = 'default' | 'drag-and-drop'
+
+This is important because we might need to do 2 different things on a Left Arrow press depending on this value.
+
+So in the solution, I would probably implement it roughly like this:
+- Initialize state: predefined Tabs, and EventSequence
+- Loop through event objects in EventSequence
+- Call a reducer function, passing in state and event
+- Reducer function switches on Event.string, and updates state accordingly. I’m actually a little uncertain if we should have like an EventKeyboardLeftArrow here, and then switch on `ActiveMode` inside. Or, if the event reaching this reducer should have more semantic events that already accounted for `ActiveMode` prior to this reducer getting called. What do you think?
+- Our UI should just render out whatever state we are currently in.
+- We will definitely need to make sure in our reducer logic for specific events to guard against invalid state updates like not letting `tabIndex` be negative, or go past the last tab item, etc.
+
+Okay, this took me like 20 minutes, so I’ll stop here. What do you think?

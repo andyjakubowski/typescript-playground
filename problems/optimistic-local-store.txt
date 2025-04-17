@@ -1,0 +1,75 @@
+PEDAC
+========================
+
+PROBLEM
+Scope, format
+========================
+
+You're building a local data store for a task list.
+
+Users can create, update, and delete tasks.
+
+These actions are sent to a remote server, but you want to apply them optimistically to the UI before the server confirms.
+
+You need to implement the local update logic.
+
+- No persistence, in-memory
+- Initialized from server data at page load
+- Optimistic local actions (create, update, delete)
+- Local actions get overwritten/replaced once server responds
+
+Let’s quickly talk about the state we need to represent. We’ll have a list of task objects. We’ll have event objects representing user actions like create, update, and delete task. We’ll have a mutation entity with a union status type.
+
+type Tasks = Array<Task>
+interface Task {
+  id: string
+  name: string
+}
+
+type Event = EventTaskCreate | EventTaskUpdate | EventTaskDelete
+type EventSequence = Array<Event>
+
+interface Mutation {
+  id: string
+  status: 'pending' | 'success' | 'failure'
+}
+
+So the tasks CRUD is relatively simple if you don’t do optimistic updates, we have EventSequence and start emitting Event objects. Each Event object triggers a transition of `Tasks` state. We could use a reducer for this like:
+
+transition(state, event) -> newState
+
+What is more interesting is obviously the optimistic updates. I’m thinking we will be doing 3 things here:
+- Instead of directly and immediately updating state, we should represent a pending mutation in our state.
+- We then apply whatever the mutation should be doing (create, update, delete task), and get new state.
+- We could represent the success and failure of state updates as events, so we can model and test it. So we could have EventMutationSuccess and EventMutationFailure.
+- For EventMutationSuccess, we could undo the original “pending” local state update, and then follow up with applying a new state update based on data we get from the server. This matters because the server might use a different ID, timestamps, etc.
+- For EventMutationFailure, we’d probably want to revert that “pending” state update, and get new state without it.
+- How can we undo local state updates? We’d need to keep some state representing like an inverse of the original event that modified state. I’m thinking we could store a Map of Mutation object IDs for keys and these inverse events for values.
+
+So in the end you could create a local `EventSequence` that simulates realistic scenarios like:
+const eventSequence = [EventTaskCreate, MutationSuccess, EventTaskUpdate, MutationFailure] etc.
+- Note that MutationSuccess and MutationFailure may come later in the sequence, it’s all async
+
+The pattern for reverting or overwriting these optimistic updates kinda seems similar to Undo/Redo.
+
+Anyway, it’s been like 25 minutes of me writing this. So what do you think? Let’s analyze.
+
+
+EXAMPLES
+Test cases, edge cases, boundaries, exceptions, errors
+========================
+
+
+DATA STRUCTURES
+Modeling data, state
+========================
+
+
+ALGORITHMS
+State transitions, logic
+========================
+
+
+CODE WITH INTENT
+========================
+
